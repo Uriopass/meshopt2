@@ -1,17 +1,16 @@
-meshopt
+meshopt2
 ========
 
-[![meshopt on travis-ci.com](https://travis-ci.com/gwihlidal/meshopt-rs.svg?branch=master)](https://travis-ci.com/gwihlidal/meshopt-rs)
-[![Latest version](https://img.shields.io/crates/v/meshopt.svg)](https://crates.io/crates/meshopt)
-[![Documentation](https://docs.rs/meshopt/badge.svg)](https://docs.rs/meshopt)
-[![](https://tokei.rs/b1/github/gwihlidal/meshopt-rs)](https://github.com/gwihlidal/meshopt-rs)
+This is a fork of https://github.com/gwihlidal/meshopt-rs that tries to stay more up-to-date on the latest meshoptimizer versions and API.
+
+[![Latest version](https://img.shields.io/crates/v/meshopt2.svg)](https://crates.io/crates/meshopt2)
+[![Documentation](https://docs.rs/meshopt2/badge.svg)](https://docs.rs/meshopt2)
 ![MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![APACHE2](https://img.shields.io/badge/license-APACHE2-blue.svg)
 
 This crate provides an FFI layer and idiomatic rust wrappers for the excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) C/C++ library.
 
-- [Documentation](https://docs.rs/meshopt)
-- [Release Notes](https://github.com/gwihlidal/meshopt-rs/releases)
+- [Documentation](https://docs.rs/meshopt2)
 
 ## Purpose
 
@@ -23,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-meshopt = "0.1.9"
+meshopt = "0.2.0"
 ```
 
 ## Example
@@ -149,6 +148,7 @@ at your option.
 
 ## Credits and Special Thanks
 
+- [Graham Wihlidal](https://github.com/gwihlidal) (Author of the meshopt binding that this crate is a fork from)
 - [Arseny Kapoulkine](https://github.com/zeux) (Author of C/C++ library)
 - [Daniel Collin](https://github.com/emoon) (Code review)
 - [Jake Shadle](https://github.com/Jake-Shadle) (Code review)
@@ -165,11 +165,11 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
 
-Contributions are always welcome; please look at the [issue tracker](https://github.com/gwihlidal/meshopt-rs/issues) to see what
+Contributions are always welcome; please look at the [issue tracker](https://github.com/Uriopass/meshopt2/issues) to see what
 known improvements are documented.
 
 ## Code of Conduct
 
 Contribution to the meshopt crate is organized under the terms of the
-Contributor Covenant, the maintainer of meshopt, @gwihlidal, promises to
+Contributor Covenant, the maintainer of meshopt2, @Uriopass, promises to
 intervene to uphold that code of conduct.

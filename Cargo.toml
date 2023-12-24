@@ -1,11 +1,11 @@
 [package]
-name = "meshopt"
+name = "meshopt2"
 version = "0.1.9"
-authors = ["Graham Wihlidal <graham@wihlidal.ca>"]
+authors = ["Graham Wihlidal <graham@wihlidal.ca>", "Paris Douady <paris.douady@hotmail.fr>"]
 description = "Rust ffi bindings and idiomatic wrapper for mesh optimizer"
-homepage = "https://github.com/gwihlidal/meshopt-rs"
-repository = "https://github.com/gwihlidal/meshopt-rs"
-documentation = "https://docs.rs/meshopt"
+homepage = "https://github.com/Uriopass/meshopt2"
+repository = "https://github.com/Uriopass/meshopt2"
+documentation = "https://docs.rs/meshopt2"
 readme = "README.md"
 keywords = ["mesh", "optimize", "cache", "3d", "rendering"]
 categories = ["rendering", "rendering::engine"]
@@ -36,7 +36,6 @@ include = [
 edition = "2021"
 
 [badges]
-travis-ci = { repository = "gwihlidal/meshopt-rs" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
