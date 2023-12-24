@@ -1,4 +1,4 @@
-use meshopt::{
+use meshopt2::{
     any_as_u8_slice, quantize_snorm, quantize_unorm, rcp_safe, EncodeHeader, EncodeObject,
     PackedVertex, Vertex,
 };
@@ -120,8 +120,8 @@ fn main() {
     let pos_bits = 14;
     let uv_bits = 12;
 
-    let (pos_offset, pos_scale) = meshopt::calc_pos_offset_and_scale(&merged_positions);
-    let (uv_offset, uv_scale) = meshopt::calc_uv_offset_and_scale(&merged_coords);
+    let (pos_offset, pos_scale) = meshopt2::calc_pos_offset_and_scale(&merged_positions);
+    let (uv_offset, uv_scale) = meshopt2::calc_uv_offset_and_scale(&merged_coords);
 
     let pos_scale_inv = rcp_safe(pos_scale);
     let uv_scale_inv = [rcp_safe(uv_scale[0]), rcp_safe(uv_scale[1])];
@@ -148,29 +148,29 @@ fn main() {
         })
         .collect();
 
-    let (vertex_count, vertex_remap) = meshopt::generate_vertex_remap(&quantized_vertices, None);
+    let (vertex_count, vertex_remap) = meshopt2::generate_vertex_remap(&quantized_vertices, None);
 
     let mut remapped_indices =
-        meshopt::remap_index_buffer(None, merged_indices.len(), &vertex_remap);
+        meshopt2::remap_index_buffer(None, merged_indices.len(), &vertex_remap);
 
     let mut remapped_vertices =
-        meshopt::remap_vertex_buffer(&quantized_vertices, vertex_count, &vertex_remap);
+        meshopt2::remap_vertex_buffer(&quantized_vertices, vertex_count, &vertex_remap);
 
     if !options.unoptimized {
         for object in &objects {
-            meshopt::optimize_vertex_cache_in_place(
+            meshopt2::optimize_vertex_cache_in_place(
                 &mut remapped_indices
                     [object.index_offset..(object.index_offset + object.index_count)],
                 remapped_vertices.len(),
             );
         }
 
-        meshopt::optimize_vertex_fetch_in_place(&mut remapped_indices, &mut remapped_vertices);
+        meshopt2::optimize_vertex_fetch_in_place(&mut remapped_indices, &mut remapped_vertices);
     }
 
-    let encoded_vertices = meshopt::encode_vertex_buffer(&remapped_vertices).unwrap();
+    let encoded_vertices = meshopt2::encode_vertex_buffer(&remapped_vertices).unwrap();
     let encoded_indices =
-        meshopt::encode_index_buffer(&remapped_indices, remapped_vertices.len()).unwrap();
+        meshopt2::encode_index_buffer(&remapped_indices, remapped_vertices.len()).unwrap();
 
     let header = EncodeHeader {
         magic: *b"OPTM",

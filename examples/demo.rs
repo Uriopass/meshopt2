@@ -1,7 +1,7 @@
 #![allow(clippy::identity_op)]
 
 use memoffset::offset_of;
-use meshopt::*;
+use meshopt2::*;
 use rand::{seq::SliceRandom, thread_rng};
 use std::{
     fmt,
@@ -45,8 +45,8 @@ impl Triangle {
 
 impl Ord for Triangle {
     fn cmp(&self, other: &Triangle) -> std::cmp::Ordering {
-        let lhs = meshopt::utilities::any_as_u8_slice(self);
-        let rhs = meshopt::utilities::any_as_u8_slice(other);
+        let lhs = meshopt2::utilities::any_as_u8_slice(self);
+        let rhs = meshopt2::utilities::any_as_u8_slice(other);
         lhs.cmp(rhs)
     }
 }
@@ -165,13 +165,13 @@ impl Mesh {
             merged_vertices.append(&mut vertices);
         }
 
-        let (total_vertices, vertex_remap) = meshopt::generate_vertex_remap(&merged_vertices, None);
+        let (total_vertices, vertex_remap) = meshopt2::generate_vertex_remap(&merged_vertices, None);
 
         let mut mesh = Self::default();
 
         mesh.indices.resize(total_indices, 0u32);
         unsafe {
-            meshopt::ffi::meshopt_remapIndexBuffer(
+            meshopt2::ffi::meshopt_remapIndexBuffer(
                 mesh.indices.as_ptr() as *mut ::std::os::raw::c_uint,
                 ::std::ptr::null(),
                 total_indices,
@@ -181,7 +181,7 @@ impl Mesh {
 
         mesh.vertices.resize(total_vertices, Vertex::default());
         unsafe {
-            meshopt::ffi::meshopt_remapVertexBuffer(
+            meshopt2::ffi::meshopt_remapVertexBuffer(
                 mesh.vertices.as_ptr() as *mut ::std::os::raw::c_void,
                 merged_vertices.as_ptr() as *const ::std::os::raw::c_void,
                 total_indices,
@@ -331,18 +331,18 @@ fn optimize_mesh(mesh: &Mesh, name: &str, opt: fn(mesh: &mut Mesh)) {
     let vertex_adapter = copy.vertex_adapter();
 
     let vcs =
-        meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), CACHE_SIZE as u32, 0, 0);
+        meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), CACHE_SIZE as u32, 0, 0);
 
     let vfs =
-        meshopt::analyze_vertex_fetch(&copy.indices, copy.vertices.len(), mem::size_of::<Vertex>());
+        meshopt2::analyze_vertex_fetch(&copy.indices, copy.vertices.len(), mem::size_of::<Vertex>());
 
-    let os = meshopt::analyze_overdraw(&copy.indices, &vertex_adapter);
+    let os = meshopt2::analyze_overdraw(&copy.indices, &vertex_adapter);
 
-    let vcs_nv = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 32, 32, 32);
+    let vcs_nv = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 32, 32, 32);
 
-    let vcs_amd = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 14, 64, 128);
+    let vcs_amd = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 14, 64, 128);
 
-    let vcs_intel = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 128, 0, 0);
+    let vcs_intel = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 128, 0, 0);
 
     println!(
         "{:9}: ACMR {:.6} ATVR {:.6} (NV {:.6} AMD {:.6} Intel {:.6}) Overfetch {:.6} Overdraw {:.6} in {:.2} msec",
@@ -379,11 +379,11 @@ fn opt_random_shuffle(mesh: &mut Mesh) {
 }
 
 fn opt_cache(mesh: &mut Mesh) {
-    meshopt::optimize_vertex_cache_in_place(&mut mesh.indices, mesh.vertices.len());
+    meshopt2::optimize_vertex_cache_in_place(&mut mesh.indices, mesh.vertices.len());
 }
 
 fn opt_cache_fifo(mesh: &mut Mesh) {
-    meshopt::optimize_vertex_cache_fifo_in_place(
+    meshopt2::optimize_vertex_cache_fifo_in_place(
         &mut mesh.indices,
         mesh.vertices.len(),
         CACHE_SIZE as u32,
@@ -396,17 +396,17 @@ fn opt_overdraw(mesh: &mut Mesh) {
     // use worst-case ACMR threshold so that overdraw optimizer can sort *all* triangles
     // warning: this significantly deteriorates the vertex cache efficiency so it is not advised; look at `opt_complete` for the recommended method
     let threshold = 3f32;
-    meshopt::optimize_overdraw_in_place(indices, &vertex_adapter, threshold);
+    meshopt2::optimize_overdraw_in_place(indices, &vertex_adapter, threshold);
 }
 
 fn opt_fetch(mesh: &mut Mesh) {
-    meshopt::optimize_vertex_fetch_in_place(&mut mesh.indices, &mut mesh.vertices);
+    meshopt2::optimize_vertex_fetch_in_place(&mut mesh.indices, &mut mesh.vertices);
 }
 
 fn opt_fetch_remap(mesh: &mut Mesh) {
-    let remap = meshopt::optimize_vertex_fetch_remap(&mesh.indices, mesh.vertices.len());
-    mesh.indices = meshopt::remap_index_buffer(Some(&mesh.indices), mesh.indices.len(), &remap);
-    mesh.vertices = meshopt::remap_vertex_buffer(&mesh.vertices, mesh.vertices.len(), &remap);
+    let remap = meshopt2::optimize_vertex_fetch_remap(&mesh.indices, mesh.vertices.len());
+    mesh.indices = meshopt2::remap_index_buffer(Some(&mesh.indices), mesh.indices.len(), &remap);
+    mesh.vertices = meshopt2::remap_vertex_buffer(&mesh.vertices, mesh.vertices.len(), &remap);
 }
 
 fn opt_complete(mesh: &mut Mesh) {
@@ -414,15 +414,15 @@ fn opt_complete(mesh: &mut Mesh) {
         let (vertex_adapter, indices) = mesh.split();
 
         // vertex cache optimization should go first as it provides starting order for overdraw
-        meshopt::optimize_vertex_cache_in_place(indices, vertex_adapter.vertex_count);
+        meshopt2::optimize_vertex_cache_in_place(indices, vertex_adapter.vertex_count);
 
         // reorder indices for overdraw, balancing overdraw and vertex cache efficiency
         let threshold = 1.05f32; // allow up to 5% worse ACMR to get more reordering opportunities for overdraw
-        meshopt::optimize_overdraw_in_place(indices, &vertex_adapter, threshold);
+        meshopt2::optimize_overdraw_in_place(indices, &vertex_adapter, threshold);
     }
 
     // vertex fetch optimization should go last as it depends on the final index order
-    let final_size = meshopt::optimize_vertex_fetch_in_place(&mut mesh.indices, &mut mesh.vertices);
+    let final_size = meshopt2::optimize_vertex_fetch_in_place(&mut mesh.indices, &mut mesh.vertices);
     mesh.vertices.resize(final_size, Default::default());
 }
 
@@ -430,20 +430,20 @@ fn stripify(mesh: &Mesh, use_restart: bool) {
     let restart_index = if use_restart { 0xffffffff } else { 0x00000000 };
 
     let process_start = Instant::now();
-    let strip = meshopt::stripify(&mesh.indices, mesh.vertices.len(), restart_index).unwrap();
+    let strip = meshopt2::stripify(&mesh.indices, mesh.vertices.len(), restart_index).unwrap();
     let process_elapsed = process_start.elapsed();
 
     let mut copy = mesh.clone();
-    copy.indices = meshopt::unstripify(&strip, restart_index).unwrap();
+    copy.indices = meshopt2::unstripify(&strip, restart_index).unwrap();
 
     assert!(copy.is_valid());
     assert_eq!(mesh, &copy);
 
     let vcs =
-        meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), CACHE_SIZE as u32, 0, 0);
-    let vcs_nv = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 32, 32, 32);
-    let vcs_amd = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 14, 64, 128);
-    let vcs_intel = meshopt::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 128, 0, 0);
+        meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), CACHE_SIZE as u32, 0, 0);
+    let vcs_nv = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 32, 32, 32);
+    let vcs_amd = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 14, 64, 128);
+    let vcs_intel = meshopt2::analyze_vertex_cache(&copy.indices, copy.vertices.len(), 128, 0, 0);
 
     println!("Stripify{}: ACMR {:.6} ATVR {:.6} (NV {:.6} AMD {:.6} Intel {:.6}); {} strip indices ({:.1}%) in {:.2} msec",
         if use_restart { "R" } else { " " },
@@ -461,17 +461,17 @@ fn stripify(mesh: &Mesh, use_restart: bool) {
 fn shadow(mesh: &Mesh) {
     let process_start = Instant::now();
     let vertex_adapter = mesh.vertex_adapter();
-    let mut shadow_indices = meshopt::generate_shadow_indices(&mesh.indices, &vertex_adapter);
+    let mut shadow_indices = meshopt2::generate_shadow_indices(&mesh.indices, &vertex_adapter);
     let process_elapsed = process_start.elapsed();
 
     // While you can't optimize the vertex data after shadow IB was constructed, you can and should optimize
     // the shadow IB for vertex cache. This is valuable even if the original indices array was optimized for
     // vertex cache!
-    meshopt::optimize_vertex_cache_in_place(&mut shadow_indices, mesh.vertices.len());
+    meshopt2::optimize_vertex_cache_in_place(&mut shadow_indices, mesh.vertices.len());
 
     let vcs =
-        meshopt::analyze_vertex_cache(&mesh.indices, mesh.vertices.len(), CACHE_SIZE as u32, 0, 0);
-    let vcss = meshopt::analyze_vertex_cache(
+        meshopt2::analyze_vertex_cache(&mesh.indices, mesh.vertices.len(), CACHE_SIZE as u32, 0, 0);
+    let vcss = meshopt2::analyze_vertex_cache(
         &shadow_indices,
         mesh.vertices.len(),
         CACHE_SIZE as u32,
@@ -502,7 +502,7 @@ fn meshlets(mesh: &Mesh) {
     let vertex_adapter = mesh.vertex_adapter();
 
     let process_start = Instant::now();
-    let meshlets = meshopt::build_meshlets(
+    let meshlets = meshopt2::build_meshlets(
         &mesh.indices,
         &vertex_adapter,
         max_vertices,
@@ -546,7 +546,7 @@ fn meshlets(mesh: &Mesh) {
 
     let test_start = Instant::now();
     for meshlet in meshlets.iter() {
-        let bounds = meshopt::compute_meshlet_bounds(meshlet, &vertex_adapter);
+        let bounds = meshopt2::compute_meshlet_bounds(meshlet, &vertex_adapter);
 
         // trivial accept: we can't ever backface cull this meshlet
         if bounds.cone_cutoff >= 1f32 {
@@ -650,12 +650,13 @@ fn simplify(mesh: &Mesh) {
             // we can simplify all the way from base level or from the last result
             // simplifying from the base level sometimes produces better results, but simplifying from last level is faster
             let src = &lods[lods.len() - 1];
-            lod = meshopt::simplify(
+            lod = meshopt2::simplify(
                 src,
                 &vertex_adapter,
                 ::std::cmp::min(src.len(), target_index_count),
                 target_error,
-                meshopt::SimplifyOptions::None,
+                meshopt2::SimplifyOptions::None,
+                None,
             );
         }
         lods.push(lod);
@@ -666,8 +667,8 @@ fn simplify(mesh: &Mesh) {
 
     // optimize each individual LOD for vertex cache & overdraw
     for lod in &mut lods {
-        meshopt::optimize_vertex_cache_in_place(lod, vertex_adapter.vertex_count);
-        meshopt::optimize_overdraw_in_place(lod, &vertex_adapter, 1f32);
+        meshopt2::optimize_vertex_cache_in_place(lod, vertex_adapter.vertex_count);
+        meshopt2::optimize_overdraw_in_place(lod, &vertex_adapter, 1f32);
     }
 
     // concatenate all LODs into one IB
@@ -701,7 +702,7 @@ fn simplify(mesh: &Mesh) {
     // vertex fetch optimization should go last as it depends on the final index order
     // note that the order of LODs above affects vertex fetch results
     let mut vertices = mesh.vertices.clone();
-    let next_vertex = meshopt::optimize_vertex_fetch_in_place(&mut indices, &mut vertices);
+    let next_vertex = meshopt2::optimize_vertex_fetch_in_place(&mut indices, &mut vertices);
     vertices.resize(next_vertex, Default::default());
 
     let optimize_elapsed = optimize_start.elapsed();
@@ -719,7 +720,7 @@ fn simplify(mesh: &Mesh) {
     // for using LOD data at runtime, in addition to vertices and indices you have to save lod_index_offsets/lod_index_counts.
     let offset_n = lod_count - 1;
 
-    let vcs_0 = meshopt::analyze_vertex_cache(
+    let vcs_0 = meshopt2::analyze_vertex_cache(
         &indices[lod_offsets[0]..(lod_offsets[0] + lod_counts[0])],
         vertices.len(),
         CACHE_SIZE as u32,
@@ -727,13 +728,13 @@ fn simplify(mesh: &Mesh) {
         0,
     );
 
-    let vfs_0 = meshopt::analyze_vertex_fetch(
+    let vfs_0 = meshopt2::analyze_vertex_fetch(
         &indices[lod_offsets[0]..(lod_offsets[0] + lod_counts[0])],
         vertices.len(),
         mem::size_of::<Vertex>(),
     );
 
-    let vcs_n = meshopt::analyze_vertex_cache(
+    let vcs_n = meshopt2::analyze_vertex_cache(
         &indices[lod_offsets[offset_n]..(lod_offsets[offset_n] + lod_counts[offset_n])],
         vertices.len(),
         CACHE_SIZE as u32,
@@ -741,15 +742,15 @@ fn simplify(mesh: &Mesh) {
         0,
     );
 
-    let vfs_n = meshopt::analyze_vertex_fetch(
+    let vfs_n = meshopt2::analyze_vertex_fetch(
         &indices[lod_offsets[offset_n]..(lod_offsets[offset_n] + lod_counts[offset_n])],
         vertices.len(),
         mem::size_of::<Vertex>(),
     );
 
     let packed = pack_vertices::<PackedVertexOct>(&vertices);
-    let encoded_vertices = meshopt::encode_vertex_buffer(&packed).unwrap();
-    let encoded_indices = meshopt::encode_index_buffer(&indices, vertices.len()).unwrap();
+    let encoded_vertices = meshopt2::encode_vertex_buffer(&packed).unwrap();
+    let encoded_indices = meshopt2::encode_index_buffer(&indices, vertices.len()).unwrap();
 
     println!("{:9}  ACMR {:.6}...{:.6} Overfetch {:.6}..{:.6} Codec VB {:.1} bits/vertex IB {:.1} bits/triangle",
         "",
@@ -764,11 +765,11 @@ fn simplify(mesh: &Mesh) {
 
 fn encode_index(mesh: &Mesh) {
     let encode_start = Instant::now();
-    let encoded = meshopt::encode_index_buffer(&mesh.indices, mesh.vertices.len()).unwrap();
+    let encoded = meshopt2::encode_index_buffer(&mesh.indices, mesh.vertices.len()).unwrap();
     let encode_elapsed = encode_start.elapsed();
 
     let decode_start = Instant::now();
-    let decoded = meshopt::decode_index_buffer::<u32>(&encoded, mesh.indices.len()).unwrap();
+    let decoded = meshopt2::decode_index_buffer::<u32>(&encoded, mesh.indices.len()).unwrap();
     let decode_elapsed = decode_start.elapsed();
 
     let compressed = compress(&encoded);
@@ -787,7 +788,7 @@ fn encode_index(mesh: &Mesh) {
     }
 
     if mesh.vertices.len() <= 65536 {
-        let decoded2 = meshopt::decode_index_buffer::<u16>(&encoded, mesh.indices.len()).unwrap();
+        let decoded2 = meshopt2::decode_index_buffer::<u16>(&encoded, mesh.indices.len()).unwrap();
         for i in (0..mesh.indices.len()).step_by(3) {
             assert!(
                 decoded[i + 0] == decoded2[i + 0] as u32
@@ -811,11 +812,11 @@ fn encode_vertex<T: FromVertex + Clone + Default + Eq>(mesh: &Mesh, name: &str) 
     let packed = pack_vertices::<T>(&mesh.vertices);
 
     let encode_start = Instant::now();
-    let encoded = meshopt::encode_vertex_buffer(&packed).unwrap();
+    let encoded = meshopt2::encode_vertex_buffer(&packed).unwrap();
     let encode_elapsed = encode_start.elapsed();
 
     let decode_start = Instant::now();
-    let decoded = meshopt::decode_vertex_buffer(&encoded, mesh.vertices.len()).unwrap();
+    let decoded = meshopt2::decode_vertex_buffer(&encoded, mesh.vertices.len()).unwrap();
     let decode_elapsed = decode_start.elapsed();
 
     assert!(packed == decoded);
@@ -873,8 +874,8 @@ fn process(path: Option<PathBuf>, export: bool) {
     optimize_mesh(&mesh, "Complete", opt_complete);
 
     let mut copy = mesh.clone();
-    meshopt::optimize_vertex_cache_in_place(&mut copy.indices, copy.vertices.len());
-    meshopt::optimize_vertex_fetch_in_place(&mut copy.indices, &mut copy.vertices);
+    meshopt2::optimize_vertex_cache_in_place(&mut copy.indices, copy.vertices.len());
+    meshopt2::optimize_vertex_fetch_in_place(&mut copy.indices, &mut copy.vertices);
 
     if export {
         match path {
