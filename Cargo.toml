@@ -1,6 +1,6 @@
 [package]
 name = "meshopt2"
-version = "0.1.9"
+version = "0.2.0"
 authors = ["Graham Wihlidal <graham@wihlidal.ca>", "Paris Douady <paris.douady@hotmail.fr>"]
 description = "Rust ffi bindings and idiomatic wrapper for mesh optimizer"
 homepage = "https://github.com/Uriopass/meshopt2"
